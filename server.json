@@ -1,0 +1,36 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/server.schema.json",
+  "name": "aisentinel",
+  "displayName": "AISentinel by Kabzhanov",
+  "version": "1.0.0",
+  "description": "Security, control, and observability layer for AI agents. Log every tool call, enforce policies, detect prompt injection. By Kabzhanov / BizDNAi — creators of AI Trust Index.",
+  "vendor": {
+    "name": "BizDNAi",
+    "url": "https://bizdnai.com/index/",
+    "email": "kabzhanov@gmail.com"
+  },
+  "homepage": "https://github.com/Kabzhanov/AISentinel",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kabzhanov/AISentinel.git"
+  },
+  "transport": [
+    { "type": "stdio", "command": "aisentinel", "args": ["serve"] },
+    { "type": "streamable-http", "url": "https://mcp.aisentinel.bizdnai.com/mcp" }
+  ],
+  "tools": [
+    { "name": "aisentinel_check_policy" },
+    { "name": "aisentinel_log_event" },
+    { "name": "aisentinel_validate_policy" },
+    { "name": "aisentinel_get_ati_snapshot" }
+  ],
+  "resources": [
+    { "uri": "policies://built-in/default" },
+    { "uri": "events://local/recent" }
+  ],
+  "prompts": [
+    { "name": "aisentinel_security_review" },
+    { "name": "aisentinel_ati_summary" }
+  ]
+}

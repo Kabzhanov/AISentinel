@@ -1,0 +1,19 @@
+version: 1
+name: strict
+description: Whitelist-only — deny by default, allow only matching rules. Use for sensitive agents.
+rules:
+  - id: allow-read
+    match:
+      tool_name: "Read"
+    decision: allow
+
+  - id: allow-bash-safe
+    match:
+      tool_name: "Bash"
+      tool_args_regex: "^(ls|cat|head|tail|grep|wc|echo|pwd|date|whoami)\\b"
+    decision: allow
+
+  - id: block-everything-else
+    match: {}
+    decision: block
+    reason: "Strict policy: only explicitly allow-listed tools and operations are permitted."

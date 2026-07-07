@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aisentinel"
+version = "1.0.0"
+description = "Python helpers for AISentinel MCP server (vendored Go binary). By Kabzhanov / BizDNAi."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Rashid Kabzhanov", email = "kabzhanov@gmail.com" }]
+keywords = ["ai-security", "agent-security", "mcp", "llm-security"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/Kabzhanov/AISentinel"
+Issues = "https://github.com/Kabzhanov/AISentinel/issues"
+
+[tool.setuptools]
+packages = []
+# Python wrapper is currently a stub; the production server is the Go binary.
+# pip install aisentinel will be enabled in v1.2 alongside the Python helper
+# library for orchestrators that prefer calling the JSON-RPC API directly.

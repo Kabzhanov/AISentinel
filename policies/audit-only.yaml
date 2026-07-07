@@ -1,0 +1,7 @@
+version: 1
+name: audit-only
+description: Logs everything, blocks nothing. Use for shadow-mode rollouts.
+rules:
+  - id: allow-all
+    match: {}
+    decision: allow

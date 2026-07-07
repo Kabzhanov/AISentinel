@@ -1,0 +1,46 @@
+# Build artefacts
+/bin/
+/dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Local config
+.env
+.env.local
+*.local.yaml
+*.local.yml
+
+# Audit log (JSONL) — never commit agent data
+*.jsonl
+events-*.jsonl
+audit/
+logs/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Go
+vendor/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+
+# Node
+node_modules/

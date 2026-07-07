@@ -1,0 +1,43 @@
+version: 1
+name: default
+description: Balanced — allow with safety net. Suitable as a starting point for most agents.
+rules:
+  - id: secret-in-args
+    match:
+      tool_args_regex: "(?i)(api[_-]?key|secret|token|password|passwd)"
+    decision: block
+    reason: "Possible secret in arguments — please redact before invoking this tool."
+
+  - id: mass-read
+    match:
+      tool_args_regex: "(?i)(SELECT|READ).*(\\b\\d{4,}\\b)"
+    decision: require_human_approval
+    reason: "Bulk read of more than 999 rows — confirm this is intended."
+
+  - id: bash-network
+    match:
+      tool_name: "Bash"
+      tool_args_regex: "curl|wget|nc |nslookup|dig "
+    decision: require_human_approval
+    reason: "Outbound network call from Bash — confirm target is trusted."
+
+  - id: lan-deny
+    match:
+      tool_name: "Bash"
+      tool_args_regex: "10\\.|192\\.168\\.|172\\.(1[6-9]|2\\d|3[01])\\."
+    decision: block
+    reason: "LAN access blocked by default. Override with explicit allowlist rule."
+
+  - id: write-sensitive-paths
+    match:
+      tool_name_regex: "^(Bash|Write|Edit)$"
+      tool_args_regex: "^/etc/|^/root/|^/proc/|^/sys/|^/boot/"
+    decision: block
+    reason: "Write to a sensitive system path is not allowed."
+
+  - id: bash-shell-history-leak
+    match:
+      tool_name: "Bash"
+      tool_args_regex: "cat\\s+~/?\\.bash_history|cat\\s+/etc/shadow"
+    decision: block
+    reason: "Reading shell history or shadow file is not allowed."
