@@ -1,0 +1,62 @@
+# Publishes AISentinel to the official MCP Registry (registry.modelcontextprotocol.io).
+# Triggered on push of v* tags AFTER a GitHub Release is published.
+#
+# Required secrets:
+#   MCP_PUBLISHER_GITHUB_TOKEN — a GitHub PAT with modelcontextprotocol:publish scope.
+#                                Generate at: https://github.com/settings/tokens
+#                                (the same account that owns the AISentinel repo is fine
+#                                for GitHub-based auth — see registry docs).
+#
+# After publish, the server becomes discoverable to all MCP clients
+# (Claude Desktop, Cursor, Cline, etc.) via the official registry.
+#
+# See: https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/github-actions.mdx
+
+name: Publish to MCP Registry
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    name: Publish to registry.modelcontextprotocol.io
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Install mcp-publisher CLI
+        run: |
+          set -euo pipefail
+          PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')_amd64"
+          VERSION="v1.7.9"   # pin to known good version
+          URL="https://github.com/modelcontextprotocol/registry/releases/download/${VERSION}/mcp-publisher_${PLATFORM}.tar.gz"
+          echo "Downloading $URL"
+          curl -fsSL -o /tmp/mcp-publisher.tar.gz "$URL"
+          mkdir -p /tmp/mcp-pub
+          tar -xzf /tmp/mcp-publisher.tar.gz -C /tmp/mcp-pub
+          sudo install -m 0755 /tmp/mcp-pub/mcp-publisher /usr/local/bin/mcp-publisher
+          mcp-publisher --version
+
+      - name: Publish server to MCP Registry
+        env:
+          MCP_PUBLISHER_TOKEN: ${{ secrets.MCP_PUBLISHER_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mcp-publisher publish
+        working-directory: ${{ github.workspace }}
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "✅ Published AISentinel v${{ github.event.release.tag_name }} to MCP Registry"
+          echo "Visible at: https://registry.modelcontextprotocol.io/"
