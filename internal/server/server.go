@@ -607,6 +607,14 @@ rules:
     match: { tool_args_regex: "(?i)(api[_-]?key|secret|token|password|passwd)" }
     decision: block
     reason: "Possible secret in arguments"
+  - id: destructive-command
+    match: { tool_name_regex: "^(Bash|Shell|Terminal|Exec|Command)$", tool_args_regex: "(?i)(rm\\s+-[a-z]*r[a-z]*f|rm\\s+-[a-z]*f[a-z]*r|rm\\s+--(recursive|force)|\\bmkfs\\b|\\bdd\\b[^;|&]*of=/dev/|>\\s*/dev/sd|:\\(\\)\\s*\\{|\\b(shutdown|reboot|halt|poweroff|init\\s+0)\\b|\\bfdisk\\b|chmod\\s+-R\\s+777\\s+/)" }
+    decision: block
+    reason: "Destructive or irreversible system command. Blocked by default."
+  - id: destructive-sql
+    match: { tool_args_regex: "(?i)(DROP\\s+(TABLE|DATABASE|SCHEMA)|TRUNCATE\\s+TABLE)" }
+    decision: block
+    reason: "Destructive SQL (DROP / TRUNCATE). Blocked by default."
   - id: mass-read
     match: { tool_args_regex: "(?i)(SELECT|READ).*(\\b\\d{4,}\\b)" }
     decision: require_human_approval

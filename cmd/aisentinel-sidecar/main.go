@@ -30,7 +30,7 @@ import (
 	"github.com/Kabzhanov/AISentinel/internal/policy"
 )
 
-const version = "1.0.0"
+const version = "1.0.5"
 
 func main() {
 	policyPath := flag.String("policy", "", "policy YAML file (default: $AISENTINEL_POLICY or policies/default.yaml)")

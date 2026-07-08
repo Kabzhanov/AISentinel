@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	version   = "1.0.0"
+	version   = "1.0.5"
 	policyDir = "policies"
 	banner    = "AISentinel v" + version + " — by Kabzhanov / BizDNAi / AI Trust Index"
 )
