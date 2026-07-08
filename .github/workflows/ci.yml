@@ -38,20 +38,86 @@ jobs:
           done
 
   release:
-    name: Release
+    name: Build binaries (${{ matrix.goos }}/${{ matrix.goarch }})
     runs-on: ubuntu-latest
     needs: test
-    if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'release:')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            ext: ""
+          - goos: linux
+            goarch: arm64
+            ext: ""
+          - goos: darwin
+            goarch: amd64
+            ext: ""
+          - goos: darwin
+            goarch: arm64
+            ext: ""
+          - goos: windows
+            goarch: amd64
+            ext: ".exe"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-      - run: |
-          go build -o dist/aisentinel-linux-amd64 ./cmd/aisentinel
-          go build -o dist/aisentinel-darwin-amd64 ./cmd/aisentinel
-          go build -o dist/aisentinel-windows-amd64.exe ./cmd/aisentinel
-      - uses: softprops/action-gh-release@v2
+          cache: true
+      - name: Build aisentinel
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          mkdir -p dist
+          go build -trimpath -ldflags="-s -w" \
+            -o "dist/aisentinel-${GOOS}-${GOARCH}${matrix.ext}" \
+            ./cmd/aisentinel
+      - name: Build aisentinel-sidecar
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          go build -trimpath -ldflags="-s -w" \
+            -o "dist/aisentinel-sidecar-${GOOS}-${GOARCH}${matrix.ext}" \
+            ./cmd/aisentinel-sidecar
+      - name: Checksums (linux/amd64)
+        if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
+        run: |
+          cd dist && sha256sum * > SHA256SUMS
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          files: dist/*
+          name: bin-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*
+
+  publish-release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Flatten binaries
+        run: |
+          mkdir -p dist
+          find artifacts -type f -exec cp {} dist/ \;
+          ls -la dist/
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/aisentinel-*
+            dist/aisentinel-sidecar-*
+            dist/SHA256SUMS
           generate_release_notes: true
+          fail_on_unmatched_files: false

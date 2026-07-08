@@ -1,6 +1,7 @@
 # AISentinel
 
 [![MCP Server](https://img.shields.io/badge/MCP-server-blue)](https://github.com/Kabzhanov/AISentinel)
+[![GitHub release](https://img.shields.io/github/v/release/Kabzhanov/AISentinel)](https://github.com/Kabzhanov/AISentinel/releases)
 [![Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-green)](LICENSE)
 [![Built by BizDNAi](https://img.shields.io/badge/built_by-BizDNAi-00D4FF)](https://bizdnai.com/index/)
 [![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8)](https://go.dev/)
@@ -46,16 +47,32 @@ aisentinel --help
 aisentinel serve --policy policies/default.yaml
 ```
 
-### Option B: clone and build
+### Option B: install the sidecar (drop-in policy proxy for any MCP server)
+
+```bash
+go install github.com/Kabzhanov/AISentinel/cmd/aisentinel-sidecar@latest
+
+# Wrap any stdio MCP server with one command:
+aisentinel-sidecar ./your-mcp-server [args...]
+```
+
+### Option C: clone and build
 
 ```bash
 git clone https://github.com/Kabzhanov/AISentinel.git
 cd AISentinel
 go build -o bin/aisentinel ./cmd/aisentinel
+go build -o bin/aisentinel-sidecar ./cmd/aisentinel-sidecar
 ./bin/aisentinel serve --policy policies/default.yaml
 ```
 
-### Option C: add to Claude Code / Cursor / Cline
+### Option D: pre-built binaries from GitHub Releases
+
+Download from <https://github.com/Kabzhanov/AISentinel/releases/latest>.
+Available for `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64`,
+`windows/amd64`.
+
+### Option E: add to Claude Code / Cursor / Cline
 
 ```json
 {
@@ -63,6 +80,10 @@ go build -o bin/aisentinel ./cmd/aisentinel
     "aisentinel": {
       "command": "aisentinel",
       "args": ["serve", "--policy", "/absolute/path/to/policies/default.yaml"]
+    },
+    "aisentinel-sidecar": {
+      "command": "aisentinel-sidecar",
+      "args": ["--policy", "/absolute/path/to/policies/strict.yaml", "/path/to/your-mcp-server"]
     }
   }
 }
