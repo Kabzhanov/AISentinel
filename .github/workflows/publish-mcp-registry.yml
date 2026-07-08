@@ -12,6 +12,7 @@ name: Publish to MCP Registry
 on:
   release:
     types: [published]
+  workflow_dispatch:    # allow manual re-runs from the Actions tab
 
 jobs:
   publish:
