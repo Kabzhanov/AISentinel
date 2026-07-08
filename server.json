@@ -3,7 +3,7 @@
   "name": "io.github.Kabzhanov/aisentinel",
   "title": "AISentinel by BizDNAi",
   "description": "Open-source security, control, and observability layer for AI agents. Wrap any stdio MCP server with one command — get pre-tool policy enforcement (allow/block/require_human_approval), append-only JSONL audit logs, and a YAML-based policy engine. Apache 2.0 + commercial dual license. G14 — Agent Runtime Hygiene in the AI Trust Index.",
-  "version": "1.0.1",
+  "version": "1.0.4",
   "homepage": "https://bizdnai.com/index/",
   "license": "Apache-2.0",
   "repository": {
@@ -18,8 +18,8 @@
   "packages": [
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/Kabzhanov/AISentinel/releases/download/v1.0.1/aisentinel-v1.0.1.mcpb",
-      "fileSha256": "PLACEHOLDER_UPDATE_AFTER_RELEASE",
+      "identifier": "https://github.com/Kabzhanov/AISentinel/releases/download/v1.0.4/aisentinel-v1.0.4.mcpb",
+      "fileSha256": "73564ed92ff2708be692562addaa2b71d014065b3eddb3bae9f298a484ae0c4b",
       "transport": {
         "type": "stdio"
       },
@@ -27,8 +27,8 @@
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/Kabzhanov/AISentinel/releases/download/v1.0.1/aisentinel-sidecar-v1.0.1.mcpb",
-      "fileSha256": "PLACEHOLDER_UPDATE_AFTER_RELEASE",
+      "identifier": "https://github.com/Kabzhanov/AISentinel/releases/download/v1.0.4/aisentinel-sidecar-v1.0.4.mcpb",
+      "fileSha256": "817eb6ff0db18d656b04a5701ac724dd3e66587faa5928e345ff9d56158fc7e6",
       "transport": {
         "type": "stdio"
       },
