@@ -1,8 +1,8 @@
 # Publishes AISentinel to the official MCP Registry (registry.modelcontextprotocol.io).
 # Triggered on GitHub Release published.
 #
-# Uses GitHub OIDC for authentication (no PAT secret required) — recommended in the
-# official registry docs: https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/github-actions.mdx
+# Uses GitHub OIDC for authentication (no PAT secret required) — per the official
+# registry docs at https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/github-actions.mdx
 #
 # After publish, the server becomes discoverable to all MCP clients
 # (Claude Desktop, Cursor, Cline, etc.) via the official registry.
@@ -37,18 +37,16 @@ jobs:
           install -m 0755 /tmp/mcp-publisher "$HOME/.local/bin/mcp-publisher"
           "$HOME/.local/bin/mcp-publisher" --version
 
-      - name: Log in via GitHub OIDC
-        env:
-          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ${{ secrets.ACTIONS_ID_TOKEN_REQUEST_TOKEN }}
-          ACTIONS_ID_TOKEN_REQUEST_URL: ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log in to MCP Registry via GitHub OIDC
         run: |
           set -euo pipefail
           export PATH="$HOME/.local/bin:$PATH"
-          # mcp-publisher login github uses GitHub OIDC (id-token from the runner).
-          # When the request URL/token are not set, it falls back to reading them
-          # from the runner environment automatically.
-          mcp-publisher login github --registry https://registry.modelcontextprotocol.io
+          # 'github-oidc' is the dedicated OIDC method for CI; 'github' is browser OAuth.
+          # The runner exposes ACTIONS_ID_TOKEN_REQUEST_URL and ACTIONS_ID_TOKEN_REQUEST_TOKEN
+          # automatically when permissions: id-token: write is granted above.
+          mcp-publisher login github-oidc \
+            --registry https://registry.modelcontextprotocol.io \
+            io.github.Kabzhanov/aisentinel
 
       - name: Publish server to MCP Registry
         run: |
