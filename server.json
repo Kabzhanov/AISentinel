@@ -7,8 +7,8 @@
   "homepage": "https://bizdnai.com/index/",
   "license": "Apache-2.0",
   "repository": {
-    "type": "git",
-    "url": "https://github.com/Kabzhanov/AISentinel.git"
+    "url": "https://github.com/Kabzhanov/AISentinel",
+    "source": "github"
   },
   "vendor": {
     "name": "BizDNAi",
