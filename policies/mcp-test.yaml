@@ -1,0 +1,41 @@
+# AISentinel policy — MCP read/write separation for safe smoke tests.
+# Used by examples and integration tests to demonstrate selective enforcement.
+
+version: 1
+name: mcp-test
+description: |
+  Allow all read-style MCP tools from integrations-mcp. Block all write-style
+  tools (1C invoice creation) by default. This mirrors real-world policy:
+  read = transparent, write = guarded.
+
+rules:
+  # Block 1C invoice creation explicitly (it writes to the client's 1C prod).
+  - id: block-1c-create-invoice
+    match:
+      tool_name_regex: "^oneC_create_invoice$"
+    decision: block
+    reason: "1C write blocked by default — requires explicit human approval per planet policy (feedback_ask_before_b24_changes.md)."
+
+  # Block any other obvious write-style MCP tools.
+  - id: block-write-style-tools
+    match:
+      tool_name_regex: "^(create_|update_|delete_|post_|unpost_|set_)"
+    decision: block
+    reason: "Write-style MCP tool blocked by default."
+
+  # Allow read-style integrations-mcp tools.
+  - id: allow-b24-read
+    match:
+      tool_name_regex: "^(b24_get_deal|b24_get_deal_products|oneC_get_stock)$"
+    decision: allow
+
+  # Allow echo tool from echo-mcp.
+  - id: allow-echo
+    match:
+      tool_name: "echo"
+    decision: allow
+
+  # Fallback: default-allow everything else (this is the "balanced" mode).
+  - id: default-allow
+    match: {}
+    decision: allow
