@@ -13,6 +13,8 @@
 > AI agents were given legitimate power through tools and APIs.
 > AISentinel provides the missing security, control, and observability layer.
 
+![AISentinel evaluating agent tool calls against the default policy — allow / block / require human approval](assets/demo.gif)
+
 ---
 
 ## 1. Project Title + Tagline
