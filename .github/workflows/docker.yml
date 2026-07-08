@@ -26,7 +26,7 @@ jobs:
       matrix:
         include:
           - name: aisentinel
-            target: ""
+            target: server
           - name: aisentinel-sidecar
             target: sidecar
     steps:

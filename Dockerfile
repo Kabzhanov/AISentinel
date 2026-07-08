@@ -1,8 +1,10 @@
 # Dockerfile for AISentinel MCP server and sidecar.
-# Multi-stage build: compiles both binaries from source, ships a slim runtime image
-# with both binaries on PATH. Use as:
-#   docker run -i ghcr.io/kabzhanov/aisentinel serve --policy /policies/default.yaml
-#   docker run -i ghcr.io/kabzhanov/aisentinel-sidecar --target /usr/local/bin/aisentinel serve
+# Multi-stage build produces two images:
+#   * default target    -> AISentinel MCP server (distroless, both binaries + policies)
+#   * --target sidecar   -> AISentinel policy-proxy sidecar (scratch)
+# Use as:
+#   docker run -i ghcr.io/kabzhanov/aisentinel serve                                  # MCP server
+#   docker run -i ghcr.io/kabzhanov/aisentinel-sidecar --policy /policies/strict.yaml your-mcp-server
 #
 # For drop-in MCP client integration, see docker-compose.yml.
 
@@ -18,17 +20,18 @@ COPY . .
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/aisentinel ./cmd/aisentinel
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/aisentinel-sidecar ./cmd/aisentinel-sidecar
 
-# Slim runtime image.
-FROM gcr.io/distroless/static-debian12:nonroot
+# Sidecar image (policy proxy) — build with `--target sidecar`.
+FROM scratch AS sidecar
+COPY --from=build /out/aisentinel-sidecar /aisentinel-sidecar
+COPY policies /policies
+ENTRYPOINT ["/aisentinel-sidecar"]
+
+# AISentinel MCP server — DEFAULT target (must remain the LAST stage).
+FROM gcr.io/distroless/static-debian12:nonroot AS server
 WORKDIR /
 COPY --from=build /out/aisentinel /usr/local/bin/aisentinel
 COPY --from=build /out/aisentinel-sidecar /usr/local/bin/aisentinel-sidecar
 COPY policies /policies
 USER nonroot:nonroot
 ENTRYPOINT ["/usr/local/bin/aisentinel"]
-CMD ["--help"]%
-
-# Stage 2 — build sidecar as a separate image so users can pick the right tag.
-FROM scratch AS sidecar
-COPY --from=build /out/aisentinel-sidecar /aisentinel-sidecar
-ENTRYPOINT ["/aisentinel-sidecar"]
+CMD ["serve"]
