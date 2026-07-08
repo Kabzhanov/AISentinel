@@ -1,0 +1,63 @@
+# Builds and publishes AISentinel docker images to GitHub Container Registry.
+# Triggered on push of v* tags after the binaries workflow completes.
+#
+# Images produced:
+#   ghcr.io/kabzhanov/aisentinel:latest              — MCP server (default entrypoint)
+#   ghcr.io/kabzhanov/aisentinel-sidecar:latest     — sidecar (drop-in policy proxy)
+#   Both also tagged with the version (e.g. v1.0.2)
+
+name: Docker
+
+on:
+  release:
+    types: [published]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: kabzhanov
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - name: aisentinel
+            target: ""
+          - name: aisentinel-sidecar
+            target: sidecar
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.name }}
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          target: ${{ matrix.target }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,0 +1,47 @@
+# docker-compose for AISentinel — drop-in policy enforcement for any stdio MCP server.
+#
+# Use this to run aiseninel-sidecar in front of your existing MCP server with one command.
+# The sidecar intercepts every tools/call, evaluates policy, and writes audit logs.
+#
+# Example: wrap the planet echo-mcp in strict policy:
+#   docker compose --profile echo run --rm aisentinel-echo
+#
+# Files written:
+#   ./policies/strict.yaml       — strict-mode policy (whitelist)
+#   ./logs/events-YYYY-MM-DD.jsonl  — audit trail
+
+version: "3.8"
+
+services:
+  aisentinel-echo:
+    profiles: ["echo"]
+    image: ghcr.io/kabzhanov/aisentinel-sidecar:latest
+    stdin_open: true
+    tty: false
+    command: >
+      sh -c "aisentinel-sidecar
+             --policy /policies/strict.yaml
+             --log-dir /logs
+             /usr/local/bin/aisentinel serve --policy /policies/default.yaml"
+    volumes:
+      - ./policies:/policies:ro
+      - ./logs:/logs
+    working_dir: /
+
+  aisentinel-integrations:
+    profiles: ["integrations"]
+    image: ghcr.io/kabzhanov/aisentinel-sidecar:latest
+    stdin_open: true
+    tty: false
+    # Wrap an external integrations MCP server (host networking or bridge).
+    command: >
+      sh -c "aisentinel-sidecar
+             --policy /policies/mcp-test.yaml
+             --log-dir /logs
+             python -m your_integrations_server"
+    volumes:
+      - ./policies:/policies:ro
+      - ./logs:/logs
+
+# Use with MCP clients:
+#   { "mcpServers": { "aisentinel": { "command": "docker", "args": ["compose", "--profile", "echo", "run", "--rm", "aisentinel-echo"] } } }
