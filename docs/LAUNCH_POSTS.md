@@ -27,10 +27,12 @@ JSONL audit log. It wraps ANY stdio MCP server with one command — no code chan
 
   aisentinel-sidecar --policy strict.yaml ./your-mcp-server
 
-Example policy rule (block outbound curl to raw IPs):
-  - id: no-raw-ip-exfil
-    match: { tool_name: Bash, tool_args_regex: "10\\.|192\\.168\\.|172\\.(1[6-9]|2\\d|3[01])\\." }
-    action: block
+Verified against the default policy (reproducible, see docs/DEMO.md):
+  rm -rf /                    -> BLOCK  (destructive-command)
+  dd if=/dev/zero of=/dev/sda -> BLOCK  (destructive-command)
+  DROP TABLE users            -> BLOCK  (destructive-sql)
+  curl ... @~/.ssh/id_rsa     -> REQUIRE_HUMAN_APPROVAL (bash-network)
+  ls -la                      -> ALLOW
 
 It's Apache-2.0, single static binary, also ships as .mcpb, Docker (GHCR) and a
 Homebrew tap. Built by our team (BizDNAi, behind the AI Trust Index).
