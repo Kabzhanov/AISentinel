@@ -93,12 +93,9 @@ Docs: https://github.com/Kabzhanov/AISentinel
 }
 
 func runServe(args []string) error {
-	policyPath, err := resolvePolicy(args)
-	if err != nil {
-		return err
-	}
+	explicitPath := explicitPolicyFlag(args)
 
-	eng, err := policy.LoadFromFile(policyPath)
+	eng, policyPath, err := policy.Resolve(explicitPath)
 	if err != nil {
 		return fmt.Errorf("load policy %s: %w", policyPath, err)
 	}
@@ -213,26 +210,16 @@ func runEvents(args []string) error {
 	return nil
 }
 
-func resolvePolicy(args []string) (string, error) {
+// explicitPolicyFlag extracts an explicit --policy value from args, if any.
+// It does NOT consult $AISENTINEL_POLICY or fall back to a default path —
+// that resolution order is centralized in policy.Resolve.
+func explicitPolicyFlag(args []string) string {
 	for i, a := range args {
 		if a == "--policy" && i+1 < len(args) {
-			return args[i+1], nil
+			return args[i+1]
 		}
 	}
-	if env := os.Getenv("AISENTINEL_POLICY"); env != "" {
-		return env, nil
-	}
-	// Default: look for policies/default.yaml relative to binary or CWD
-	candidates := []string{
-		filepath.Join("policies", "default.yaml"),
-		filepath.Join("policies", "default.yml"),
-	}
-	for _, c := range candidates {
-		if _, err := os.Stat(c); err == nil {
-			return c, nil
-		}
-	}
-	return "", fmt.Errorf("no policy file found; pass --policy FILE or set AISENTINEL_POLICY")
+	return ""
 }
 
 func ruleActions(eng *policy.Engine) map[string]int {

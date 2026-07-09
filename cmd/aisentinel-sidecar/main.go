@@ -33,7 +33,7 @@ import (
 const version = "1.0.6"
 
 func main() {
-	policyPath := flag.String("policy", "", "policy YAML file (default: $AISENTINEL_POLICY or policies/default.yaml)")
+	policyPath := flag.String("policy", "", "policy YAML file (default: $AISENTINEL_POLICY, then ./policies/default.yaml, then built-in default)")
 	logDir := flag.String("log-dir", "", "audit log directory (default: $AISENTINEL_LOG_DIR or ~/.aisentinel)")
 	dryRun := flag.Bool("dry-run", false, "never block — only log decisions (also via $AISENTINEL_DRY_RUN=1)")
 	showVersion := flag.Bool("version", false, "print version and exit")
@@ -53,13 +53,6 @@ func main() {
 		os.Exit(2)
 	}
 
-	// Env defaults
-	if *policyPath == "" {
-		*policyPath = os.Getenv("AISENTINEL_POLICY")
-	}
-	if *policyPath == "" {
-		*policyPath = "policies/default.yaml"
-	}
 	if *logDir == "" {
 		*logDir = os.Getenv("AISENTINEL_LOG_DIR")
 	}
@@ -73,12 +66,16 @@ func main() {
 		}
 	}
 
-	// Load policy
-	eng, err := policy.LoadFromFile(*policyPath)
+	// Load policy: --policy > $AISENTINEL_POLICY > ./policies/default.yaml
+	// (if present) > built-in embedded default. Never fails just because no
+	// policy file is reachable — only when an explicit path/env is set but
+	// unreadable/invalid.
+	eng, policySource, err := policy.Resolve(*policyPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "sidecar: load policy %s: %v\n", *policyPath, err)
+		fmt.Fprintf(os.Stderr, "sidecar: load policy %s: %v\n", policySource, err)
 		os.Exit(1)
 	}
+	*policyPath = policySource
 
 	// Open audit logger
 	if err := os.MkdirAll(*logDir, 0o755); err != nil {

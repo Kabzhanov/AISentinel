@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/Kabzhanov/AISentinel/policies"
 )
 
 // Engine is the loaded policy.
@@ -48,6 +50,62 @@ func LoadFromFile(path string) (*Engine, error) {
 		return nil, err
 	}
 	return Load(data)
+}
+
+// Resolve implements AISentinel's standard policy-resolution order:
+//
+//  1. explicitPath (e.g. --policy flag) — if set, it MUST load; failure to
+//     read/parse it is a hard error (never silently falls back).
+//  2. $AISENTINEL_POLICY env var — same "must load" contract as above.
+//  3. ./policies/default.yaml relative to CWD, if that file exists on disk.
+//  4. The built-in embedded default policy (policies/default.yaml baked
+//     into the binary at build time). This step never fails to find a
+//     policy, so `aisentinel`/`aisentinel-sidecar` never exit(1) merely
+//     because no policy file is reachable.
+//
+// The returned source string describes where the policy came from, for
+// startup banners/logs. When the built-in default is used, a note is
+// printed to stderr so operators aren't surprised.
+func Resolve(explicitPath string) (eng *Engine, source string, err error) {
+	if explicitPath != "" {
+		eng, err = LoadFromFile(explicitPath)
+		if err != nil {
+			return nil, explicitPath, err
+		}
+		return eng, explicitPath, nil
+	}
+
+	if envPath := os.Getenv("AISENTINEL_POLICY"); envPath != "" {
+		eng, err = LoadFromFile(envPath)
+		if err != nil {
+			return nil, envPath, err
+		}
+		return eng, envPath, nil
+	}
+
+	const onDiskDefault = "policies/default.yaml"
+	if _, statErr := os.Stat(onDiskDefault); statErr == nil {
+		eng, err = LoadFromFile(onDiskDefault)
+		if err != nil {
+			return nil, onDiskDefault, err
+		}
+		return eng, onDiskDefault, nil
+	}
+
+	eng, err = LoadDefault()
+	if err != nil {
+		return nil, "built-in default", fmt.Errorf("load embedded default policy: %w", err)
+	}
+	fmt.Fprintln(os.Stderr, "aisentinel: using built-in default policy")
+	return eng, "built-in default", nil
+}
+
+// LoadDefault parses the built-in default policy, embedded at build time
+// from policies/default.yaml. It never fails to find the file (it's
+// compiled into the binary), but Load can still return an error if the
+// embedded YAML is somehow malformed.
+func LoadDefault() (*Engine, error) {
+	return Load(policies.Default)
 }
 
 // Load parses policy YAML from bytes.
