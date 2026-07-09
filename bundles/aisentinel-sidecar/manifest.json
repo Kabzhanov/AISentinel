@@ -1,0 +1,69 @@
+{
+  "manifest_version": "0.3",
+  "name": "aisentinel-sidecar",
+  "display_name": "AISentinel Sidecar — Drop-in Policy Proxy for any stdio MCP server",
+  "version": "1.0.6",
+  "description": "Transparent policy proxy that wraps any stdio MCP server. Intercepts every tools/call, evaluates YAML policy, and writes a JSONL audit trail. Zero code changes to the wrapped server.",
+  "long_description": "aisentinel-sidecar sits between an MCP client and any stdio MCP server (Claude Desktop, Cursor, Cline, LangGraph, etc.). It passes through all initialize / list / read traffic unchanged, but evaluates every tools/call invocation against a user-supplied YAML policy. The wrapped server is started as a child process; AISentinel never blocks reads, but blocks or gates writes according to policy.",
+  "author": {
+    "name": "Kabzhanov / BizDNAi",
+    "email": "kabzhanov@gmail.com",
+    "url": "https://bizdnai.com/index/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kabzhanov/AISentinel.git"
+  },
+  "homepage": "https://bizdnai.com/index/",
+  "documentation": "https://github.com/Kabzhanov/AISentinel/blob/main/README.md",
+  "support": "https://github.com/Kabzhanov/AISentinel/issues",
+  "license": "Apache-2.0",
+  "server": {
+    "type": "binary",
+    "entry_point": "server/aisentinel-sidecar",
+    "mcp_config": {
+      "command": "${__dirname}/server/aisentinel-sidecar",
+      "args": [
+        "--policy", "${user_config.policy_path}",
+        "--log-dir", "${user_config.log_dir}",
+        "${user_config.inner_command}"
+      ],
+      "env": {}
+    }
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "mcp",
+    "sidecar",
+    "proxy",
+    "security",
+    "policy",
+    "audit",
+    "guardrails"
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "linux", "win32"]
+  },
+  "user_config": {
+    "policy_path": {
+      "type": "string",
+      "title": "Policy YAML file (absolute path)",
+      "description": "Absolute path to a YAML policy file (allow / block / require_human_approval rules).",
+      "required": true
+    },
+    "log_dir": {
+      "type": "string",
+      "title": "Audit log directory",
+      "description": "Directory for the append-only JSONL audit log. Default: ~/.aisentinel",
+      "required": false,
+      "default": "~/.aisentinel"
+    },
+    "inner_command": {
+      "type": "string",
+      "title": "Inner MCP server command",
+      "description": "Absolute path to the stdio MCP server binary to wrap (e.g. /usr/local/bin/echo-mcp). The sidecar starts it as a child process and proxies traffic through it.",
+      "required": true
+    }
+  }
+}

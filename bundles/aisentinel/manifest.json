@@ -1,0 +1,66 @@
+{
+  "manifest_version": "0.3",
+  "name": "aisentinel",
+  "display_name": "AISentinel — Pre-tool Policy Enforcement for AI Agents",
+  "version": "1.0.6",
+  "description": "Security, control, and observability layer for AI agents. Evaluates every MCP tool call against a YAML policy (allow / block / require_human_approval) and writes an append-only JSONL audit trail.",
+  "long_description": "AISentinel runs as an MCP server in front of any tool call. It enforces policy before invocation, blocks destructive operations, gates sensitive writes behind human approval, and produces a tamper-evident audit log. Compatible with Claude Desktop, Claude Code, Cursor, Cline, and any MCP client.",
+  "author": {
+    "name": "Kabzhanov / BizDNAi",
+    "email": "kabzhanov@gmail.com",
+    "url": "https://bizdnai.com/index/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kabzhanov/AISentinel.git"
+  },
+  "homepage": "https://bizdnai.com/index/",
+  "documentation": "https://github.com/Kabzhanov/AISentinel/blob/main/README.md",
+  "support": "https://github.com/Kabzhanov/AISentinel/issues",
+  "license": "Apache-2.0",
+  "server": {
+    "type": "binary",
+    "entry_point": "server/aisentinel",
+    "mcp_config": {
+      "command": "${__dirname}/server/aisentinel",
+      "args": ["serve", "--policy", "${user_config.policy_path}"],
+      "env": {
+        "AISENTINEL_LOG_DIR": "${user_config.log_dir}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "evaluate_tool_call",
+      "description": "Evaluates a tool call against the configured YAML policy and returns the decision (allow / block / require_human_approval) with reasoning."
+    }
+  ],
+  "keywords": [
+    "ai",
+    "agent",
+    "mcp",
+    "security",
+    "policy",
+    "audit",
+    "guardrails",
+    "sandbox"
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "linux", "win32"]
+  },
+  "user_config": {
+    "policy_path": {
+      "type": "string",
+      "title": "Policy YAML file (absolute path)",
+      "description": "Absolute path to a YAML policy file. See https://github.com/Kabzhanov/AISentinel/tree/main/policies for built-in policies (default, strict, mcp-test, planet-prod).",
+      "required": true
+    },
+    "log_dir": {
+      "type": "string",
+      "title": "Audit log directory",
+      "description": "Directory for the append-only JSONL audit log. Default: ~/.aisentinel",
+      "required": false,
+      "default": "~/.aisentinel"
+    }
+  }
+}

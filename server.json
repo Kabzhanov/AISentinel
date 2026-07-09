@@ -3,7 +3,7 @@
   "name": "io.github.Kabzhanov/aisentinel",
   "title": "AISentinel by BizDNAi",
   "description": "Pre-tool policy enforcement + JSONL audit for AI agents. Apache 2.0.",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "homepage": "https://bizdnai.com/index/",
   "license": "Apache-2.0",
   "repository": {
@@ -18,8 +18,8 @@
   "packages": [
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/Kabzhanov/AISentinel/releases/download/v1.0.4/aisentinel-v1.0.4.mcpb",
-      "fileSha256": "73564ed92ff2708be692562addaa2b71d014065b3eddb3bae9f298a484ae0c4b",
+      "identifier": "https://github.com/Kabzhanov/AISentinel/releases/download/v1.0.6/aisentinel-v1.0.6.mcpb",
+      "fileSha256": "b74a3284f0d12cf1ba13eb6876547e525f797f6beb95ad18c3fe76fce330ad51",
       "transport": {
         "type": "stdio"
       },
@@ -27,8 +27,8 @@
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/Kabzhanov/AISentinel/releases/download/v1.0.4/aisentinel-sidecar-v1.0.4.mcpb",
-      "fileSha256": "817eb6ff0db18d656b04a5701ac724dd3e66587faa5928e345ff9d56158fc7e6",
+      "identifier": "https://github.com/Kabzhanov/AISentinel/releases/download/v1.0.6/aisentinel-sidecar-v1.0.6.mcpb",
+      "fileSha256": "dfa85b72d14f11c295ae7d6f4ac60a3705198aa2c7954e01111a2e78d38a0c38",
       "transport": {
         "type": "stdio"
       },
