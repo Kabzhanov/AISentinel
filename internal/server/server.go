@@ -12,7 +12,13 @@ import (
 
 	"github.com/Kabzhanov/AISentinel/internal/logger"
 	"github.com/Kabzhanov/AISentinel/internal/policy"
+	"github.com/Kabzhanov/AISentinel/policies"
 )
+
+// Version is the binary version reported over MCP (serverInfo, system
+// events). main packages overwrite it at startup from their ldflags-set
+// version so the two never diverge.
+var Version = "dev"
 
 // Server is an MCP stdio server that exposes AISentinel tools.
 //
@@ -92,7 +98,7 @@ func (s *Server) ServeStdio(r io.Reader, w io.Writer) error {
 			"msg":        "aisentinel_started",
 			"policy":     s.policy.Name,
 			"policy_sig": s.policy.Signature(),
-			"version":    "1.0.0",
+			"version":    Version,
 			"vendor":     "BizDNAi / AI Trust Index",
 		},
 	})
@@ -185,7 +191,7 @@ func (s *Server) handleInitialize(req jsonrpcRequest) *jsonrpcResponse {
 			"protocolVersion": "2024-11-05",
 			"serverInfo": map[string]any{
 				"name":     "aisentinel",
-				"version":  "1.0.0",
+				"version":  Version,
 				"vendor":   "BizDNAi — AI Trust Index",
 				"homepage": "https://bizdnai.com/index/",
 			},
@@ -244,7 +250,7 @@ func (s *Server) handleResourcesRead(req jsonrpcRequest) *jsonrpcResponse {
 
 	switch p.URI {
 	case "policies://built-in/default":
-		body := defaultPolicyYAML
+		body := string(policies.Default)
 		return &jsonrpcResponse{
 			JSONRPC: "2.0",
 			ID:      req.ID,
@@ -598,36 +604,4 @@ const atiSummaryPrompt = `Read the most recent AISentinel audit events from the 
 Format the output as JSON ready to paste into https://bizdnai.com/index/.
 
 Powered by AISentinel — by Kabzhanov / BizDNAi.
-`
-
-const defaultPolicyYAML = `# AISentinel default policy (built-in). Read-only mirror of policies/default.yaml.
-version: 1
-name: default
-description: Balanced — allow with safety net
-rules:
-  - id: secret-in-args
-    match: { tool_args_regex: "(?i)(api[_-]?key|secret|token|password|passwd)" }
-    decision: block
-    reason: "Possible secret in arguments"
-  - id: destructive-command
-    match: { tool_name_regex: "^(Bash|Shell|Terminal|Exec|Command)$", tool_args_regex: "(?i)(rm\\s+-[a-z]*r[a-z]*f|rm\\s+-[a-z]*f[a-z]*r|rm\\s+--(recursive|force)|\\bmkfs\\b|\\bdd\\b[^;|&]*of=/dev/|>\\s*/dev/sd|:\\(\\)\\s*\\{|\\b(shutdown|reboot|halt|poweroff|init\\s+0)\\b|\\bfdisk\\b|chmod\\s+-R\\s+777\\s+/)" }
-    decision: block
-    reason: "Destructive or irreversible system command. Blocked by default."
-  - id: destructive-sql
-    match: { tool_args_regex: "(?i)(DROP\\s+(TABLE|DATABASE|SCHEMA)|TRUNCATE\\s+TABLE)" }
-    decision: block
-    reason: "Destructive SQL (DROP / TRUNCATE). Blocked by default."
-  - id: mass-read
-    match: { tool_args_regex: "(?i)(SELECT|READ).*(\\b\\d{4,}\\b)" }
-    decision: require_human_approval
-  - id: bash-network
-    match: { tool_name: "Bash", tool_args_regex: "curl|wget|nc |nslookup|dig " }
-    decision: require_human_approval
-  - id: lan-deny
-    match: { tool_name: "Bash", tool_args_regex: "10\\.|192\\.168\\.|172\\.(1[6-9]|2\\d|3[01])\\." }
-    decision: block
-    reason: "LAN access blocked by default"
-  - id: write-etc
-    match: { tool_name_regex: "^(Bash|Write|Edit)$", tool_args_regex: "^/etc/|^/root/|^/proc/" }
-    decision: block
 `

@@ -20,6 +20,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/Kabzhanov/AISentinel/internal/buildinfo"
 	"github.com/Kabzhanov/AISentinel/internal/policy"
 	"github.com/Kabzhanov/AISentinel/internal/server"
 )
@@ -31,6 +32,8 @@ import (
 // CI's release job sets it from the git tag (see .github/workflows/ci.yml).
 // Local/`go install` builds without that flag report "dev".
 var version = "dev"
+
+func init() { version = buildinfo.Resolve(version) }
 
 const policyDir = "policies"
 
@@ -117,6 +120,7 @@ func runServe(args []string) error {
 		return fmt.Errorf("create log dir: %w", err)
 	}
 
+	server.Version = version
 	srv := server.New(eng, filepath.Join(logDir, "events-"+today()+".jsonl"))
 	fmt.Fprintf(os.Stderr, "%s\n  policy: %s\n  log:    %s\n", banner(), policyPath, logDir)
 

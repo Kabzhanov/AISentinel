@@ -4,9 +4,15 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [1.0.7] - 2026-07-09
 
 ### Fixed
+- MCP `serverInfo`/system events now report the real binary version (was
+  hardcoded `1.0.0`), and `resources/read` of `policies://built-in/default`
+  serves the embedded policy instead of a stale inline mirror.
+- Version resolution falls back to `runtime/debug.ReadBuildInfo()`, so
+  `go install ...@v1.0.7` binaries report their module version instead of
+  `dev` (ldflags still win for release builds).
 - `go install` + running either binary outside a clone of this repo no longer
   fails with `os.Exit(1)` when no `--policy`/`$AISENTINEL_POLICY` is given:
   the default policy is now embedded into the binary (`policies` package,

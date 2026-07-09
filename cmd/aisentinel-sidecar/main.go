@@ -26,6 +26,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Kabzhanov/AISentinel/internal/buildinfo"
 	"github.com/Kabzhanov/AISentinel/internal/iox"
 	"github.com/Kabzhanov/AISentinel/internal/logger"
 	"github.com/Kabzhanov/AISentinel/internal/policy"
@@ -38,6 +39,8 @@ import (
 // CI's release job sets it from the git tag (see .github/workflows/ci.yml).
 // Local/`go install` builds without that flag report "dev".
 var version = "dev"
+
+func init() { version = buildinfo.Resolve(version) }
 
 func main() {
 	policyPath := flag.String("policy", "", "policy YAML file (default: $AISENTINEL_POLICY, then ./policies/default.yaml, then built-in default)")

@@ -43,4 +43,4 @@ venv/
 build/
 
 # Node
-node_modules/
+node_modules/awesome-mcp-servers/
