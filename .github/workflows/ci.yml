@@ -113,22 +113,26 @@ jobs:
           mkdir -p dist
           find artifacts -type f -exec cp {} dist/ \;
           ls -la dist/
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 'lts/*'
       - name: Pack MCPB bundles
         env:
           VERSION: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           # Install mcpb CLI (Anthropic's MCP Bundle toolchain).
-          curl -L "https://github.com/anthropics/mcpb/releases/latest/download/mcpb_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" \
-            | tar xz mcpb
-          chmod +x mcpb
-          ./mcpb --version
+          # Note: anthropics/mcpb does NOT publish GitHub Release binaries;
+          # the only distribution channel is npm.
+          npm install -g @anthropic-ai/mcpb@2.1.2
+          mcpb --version
           # Pack aisentinel.mcpb from linux/amd64 binary.
           cp dist/aisentinel-linux-amd64 bundles/aisentinel/server/aisentinel
-          (cd bundles/aisentinel && ../../mcpb pack . ../../dist/aisentinel-${VERSION}.mcpb)
+          (cd bundles/aisentinel && mcpb pack . ../../dist/aisentinel-${VERSION}.mcpb)
           # Pack aisentinel-sidecar.mcpb from linux/amd64 binary.
           cp dist/aisentinel-sidecar-linux-amd64 bundles/aisentinel-sidecar/server/aisentinel-sidecar
-          (cd bundles/aisentinel-sidecar && ../../mcpb pack . ../../dist/aisentinel-sidecar-${VERSION}.mcpb)
+          (cd bundles/aisentinel-sidecar && mcpb pack . ../../dist/aisentinel-sidecar-${VERSION}.mcpb)
           # Record SHA-256 of both bundles for traceability.
           (cd dist && sha256sum aisentinel-${VERSION}.mcpb aisentinel-sidecar-${VERSION}.mcpb) >> SHA256SUMS
           ls -la dist/
