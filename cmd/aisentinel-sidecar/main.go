@@ -26,6 +26,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Kabzhanov/AISentinel/internal/iox"
 	"github.com/Kabzhanov/AISentinel/internal/logger"
 	"github.com/Kabzhanov/AISentinel/internal/policy"
 )
@@ -120,18 +121,26 @@ func main() {
 
 	var wg sync.WaitGroup
 
+	// Both the "server → client" copy loop (goroutine B) and the blocked-call
+	// JSON-RPC error response written from intercept() (goroutine A) write to
+	// os.Stdout. Route both through one lockedLineWriter so a block response
+	// can never get interleaved mid-line with a line the target server is
+	// forwarding through, and vice versa.
+	stdout := iox.NewLockedLineWriter(os.Stdout)
+
 	// Goroutine A: client → (intercept) → server
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		intercept(os.Stdin, inPipe, eng, log, *dryRun, "client", "")
+		intercept(os.Stdin, inPipe, stdout, eng, log, *dryRun, "client", "")
 	}()
 
-	// Goroutine B: server → client (pure pipe)
+	// Goroutine B: server → client, forwarded line-by-line so writes to
+	// os.Stdout stay atomic per line (see stdout comment above).
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		_, _ = io.Copy(os.Stdout, outPipe)
+		copyLines(outPipe, stdout)
 	}()
 
 	// Wait for either target exit or signal
@@ -153,10 +162,10 @@ func main() {
 }
 
 // intercept reads newline-delimited JSON-RPC from src, evaluates each
-// tools/call against the policy, and writes the result to dst.
-// Blocked calls return a JSON-RPC error to dst (the client side) and never
-// reach dst (the server side).
-func intercept(src io.Reader, dst io.Writer, eng *policy.Engine, log *logger.Logger,
+// tools/call against the policy, and writes the result to dst (the target
+// server's stdin). Blocked calls instead write a JSON-RPC error to stdout
+// (the client side) via the shared lockedLineWriter, and never reach dst.
+func intercept(src io.Reader, dst io.Writer, stdout *iox.LockedLineWriter, eng *policy.Engine, log *logger.Logger,
 	dryRun bool, direction string, agentID string) {
 
 	scanner := bufio.NewScanner(src)
@@ -165,8 +174,6 @@ func intercept(src io.Reader, dst io.Writer, eng *policy.Engine, log *logger.Log
 
 	out := bufio.NewWriter(dst)
 	defer out.Flush()
-	outStd := bufio.NewWriter(os.Stdout)
-	defer outStd.Flush()
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
@@ -254,15 +261,38 @@ func intercept(src io.Reader, dst io.Writer, eng *policy.Engine, log *logger.Log
 			},
 		}
 		respBytes, _ := json.Marshal(errResp)
-		_, _ = outStd.Write(respBytes)
-		_ = outStd.WriteByte('\n')
-		_ = outStd.Flush()
+		if err := stdout.WriteLine(respBytes); err != nil {
+			fmt.Fprintf(os.Stderr, "sidecar: write block response: %v\n", err)
+		}
 
 		fmt.Fprintf(os.Stderr, "  [BLOCK] %s (rule=%s) %s\n", toolName, dec.RuleID, dec.Reason)
 	}
 
 	if err := scanner.Err(); err != nil && err != io.EOF {
 		fmt.Fprintf(os.Stderr, "sidecar: read %s: %v\n", direction, err)
+	}
+}
+
+// copyLines forwards newline-delimited output from src to dst one whole
+// line at a time via dst.WriteLine, instead of io.Copy's raw byte-stream
+// copy. This keeps every line dst writes atomic with respect to any other
+// concurrent WriteLine caller sharing the same underlying writer (here,
+// intercept's blocked-call JSON-RPC error response also targets stdout) —
+// io.Copy gives no such guarantee and could interleave partial JSON-RPC
+// lines from the two sources.
+func copyLines(src io.Reader, dst *iox.LockedLineWriter) {
+	scanner := bufio.NewScanner(src)
+	// Same increased buffer cap as intercept's scanner — MCP messages can be
+	// large (e.g. tool results with big payloads).
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		if err := dst.WriteLine(scanner.Bytes()); err != nil {
+			fmt.Fprintf(os.Stderr, "sidecar: write stdout: %v\n", err)
+			return
+		}
+	}
+	if err := scanner.Err(); err != nil && err != io.EOF {
+		fmt.Fprintf(os.Stderr, "sidecar: read target stdout: %v\n", err)
 	}
 }
 
