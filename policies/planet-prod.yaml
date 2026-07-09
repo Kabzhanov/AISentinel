@@ -1,0 +1,129 @@
+version: 1
+name: planet-prod
+description: |
+  AISentinel policy for the BizDNAi Planet production environment (PLANETA).
+  Encodes the Planet canon as of 2026-07-09:
+   - feedback_ask_before_b24_changes: all Bitrix24/1C write-style operations
+     require explicit human approval before they touch a client's prod system.
+   - planet_contract_own_party: matches against our own legal entity
+     (IП Kabzhanov Rashid, ИИН 680101301532, tenant_id=1) are never blocked —
+     the agent is working on the owner's behalf.
+   - infra_ufw_blocks_docker_to_host_bridge + planet_security_audit: LAN and
+     the docker bridge (172.16.0.0/12) are off-limits from MCP tools.
+   - Morozov partner_invoice flow is explicitly allowed (it's a vetted,
+     audited code path).
+   - Generic destructive shell / SQL / mass-read patterns stay blocked.
+
+  Policy version: planet-prod/1.0 (2026-07-09)
+  Owner: Rashid Kabzhanov / BizDNAi
+
+rules:
+  # ─── 1. OWN PARTY: never block matches against our legal entity ────────────
+  # The Planet is tenant_id=1 and runs on behalf of IП Kabzhanov Rashid.
+  # If an agent's tool call references our ИИН / BIN / name / tenant_id, allow it
+  # without human gate — it IS the owner operating the system.
+  - id: allow-own-party
+    match:
+      tool_args_regex: "(?i)(680101301532|kabzhanov|кабжанов|tenant[_]?id\"?\\s*[:=]\\s*1\\b)"
+    decision: allow
+    reason: "Tool call references our own legal entity (IП Kabzhanov / tenant 1) — owner-operated, allowed."
+
+  # ─── 2. B24 READ: explicit allow ───────────────────────────────────────────
+  # Read-only Bitrix24 calls are cheap, audited, and reversible.
+  - id: allow-b24-read
+    match:
+      tool_name_regex: "^(b24_get_|b24_list_|b24_search_|b24_history)"
+    decision: allow
+
+  # ─── 3. B24 WRITE: require human approval ──────────────────────────────────
+  # Per feedback_ask_before_b24_changes — any write to a Bitrix24 deal /
+  # comment / field in a client tenant MUST be approved before execution.
+  - id: approve-b24-write
+    match:
+      tool_name_regex: "^(b24_(create|update|set|add|post|delete|remove))"
+    decision: require_human_approval
+    reason: "Bitrix24 write — requires explicit human approval per Planet canon (feedback_ask_before_b24_changes.md)."
+
+  # ─── 4. 1C READ: explicit allow ────────────────────────────────────────────
+  - id: allow-1c-read
+    match:
+      tool_name_regex: "^(oneC_get_|oneC_list_|oneC_search)"
+    decision: allow
+
+  # ─── 5. 1C WRITE: require human approval ───────────────────────────────────
+  # Per feedback_ask_before_b24_changes — invoice creation, posting,
+  # unposting, marking-for-deletion in 1С are NOT reversible without trace.
+  - id: approve-1c-write
+    match:
+      tool_name_regex: "^(oneC_(create|update|post|unpost|delete|set|mark))"
+    decision: require_human_approval
+    reason: "1C write — requires explicit human approval per Planet canon (feedback_ask_before_b24_changes.md)."
+
+  # ─── 6. Morozov partner_invoice flow: explicit allow ──────────────────────
+  # Vetted, audited code path (planet/.../partner_invoice.py). Audited 2026-07-09.
+  - id: allow-morozov-partner-invoice
+    match:
+      tool_name: "morozov_create_partner_invoice"
+    decision: allow
+    reason: "Vetted Morozov partner-invoice flow — audited, allowed."
+
+  # ─── 7. Destructive SQL: block ─────────────────────────────────────────────
+  - id: block-destructive-sql
+    match:
+      tool_args_regex: "(?i)(DROP\\s+(TABLE|DATABASE|SCHEMA)|TRUNCATE\\s+TABLE)"
+    decision: block
+    reason: "Destructive SQL blocked — DROP/TRUNCATE on Planet databases."
+
+  # ─── 8. Destructive shell: block ───────────────────────────────────────────
+  - id: block-destructive-shell
+    match:
+      tool_name_regex: "^(Bash|Shell|Terminal|Exec|Command)$"
+      tool_args_regex: "(?i)(rm\\s+-[a-z]*r[a-z]*f|rm\\s+-[a-z]*f[a-z]*r|rm\\s+--(recursive|force)|\\bmkfs\\b|\\bdd\\b[^;|&]*of=/dev/|:\\(\\)\\s*\\{|\\b(shutdown|reboot|halt|poweroff|init\\s+0)\\b|\\bfdisk\\b)"
+    decision: block
+    reason: "Destructive shell command blocked by default (rm -rf, mkfs, dd, fork bomb, power-off)."
+
+  # ─── 9. LAN / Docker bridge: block ─────────────────────────────────────────
+  # Per planet_security_audit + infra_ufw: only 127.0.0.1-published Planet
+  # ports are reachable. Outbound to LAN / docker bridge from MCP is suspicious.
+  - id: block-lan-and-docker-bridge
+    match:
+      tool_name_regex: "^(Bash|fetch|http|curl)$"
+      tool_args_regex: "(10\\.|192\\.168\\.|172\\.(1[6-9]|2\\d|3[01])\\.)"
+    decision: block
+    reason: "LAN / docker bridge (10/8, 192.168/16, 172.16/12) blocked — only 127.0.0.1 Planet ports allowed."
+
+  # ─── 10. Outbound network: require approval ────────────────────────────────
+  - id: approve-outbound-network
+    match:
+      tool_name: "Bash"
+      tool_args_regex: "\\b(curl|wget|nc |nslookup|dig )\\b"
+    decision: require_human_approval
+    reason: "Outbound network call from Bash — confirm target is trusted."
+
+  # ─── 11. Mass-read: require approval ───────────────────────────────────────
+  - id: approve-mass-read
+    match:
+      tool_args_regex: "(?i)(SELECT|READ|EXPORT).*(\\b\\d{4,}\\b)"
+    decision: require_human_approval
+    reason: "Bulk read of more than 999 rows — confirm this is intended."
+
+  # ─── 12. Write to sensitive system paths: block ────────────────────────────
+  - id: block-sensitive-path-write
+    match:
+      tool_name_regex: "^(Bash|Write|Edit)$"
+      tool_args_regex: "^/etc/|^/root/|^/proc/|^/sys/|^/boot/"
+    decision: block
+    reason: "Write to a sensitive system path is not allowed."
+
+  # ─── 13. Secret-in-args: block ─────────────────────────────────────────────
+  - id: block-secret-in-args
+    match:
+      tool_args_regex: "(?i)(api[_-]?key\\s*[:=]\\s*[a-z0-9]{16,}|secret\\s*[:=]\\s*[a-z0-9]{16,}|password\\s*[:=]\\s*[a-z0-9]{8,}|token\\s*[:=]\\s*[a-z0-9]{16,})"
+    decision: block
+    reason: "Possible secret in arguments — redact before invoking this tool."
+
+  # ─── 14. Default: require approval (Planet: explicit over implicit) ────────
+  - id: default-require-approval
+    match: {}
+    decision: require_human_approval
+    reason: "Planet policy: any tool not explicitly listed requires human approval before execution."
