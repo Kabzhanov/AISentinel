@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Kabzhanov/AISentinel/internal/logger"
@@ -16,13 +15,16 @@ import (
 )
 
 // Server is an MCP stdio server that exposes AISentinel tools.
+//
+// Server is single-threaded by design: ServeStdio runs one blocking
+// read/handle loop over stdin and never spawns goroutines that touch
+// Server's fields concurrently, so no internal locking is needed here.
 type Server struct {
-	policy   *policy.Engine
-	log      *logger.Logger
-	logPath  string
-	dryRun   bool
-	mu       sync.Mutex
-	tools    []tool
+	policy  *policy.Engine
+	log     *logger.Logger
+	logPath string
+	dryRun  bool
+	tools   []tool
 }
 
 // New creates a server bound to a policy engine and audit log path.
