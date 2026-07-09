@@ -67,14 +67,27 @@ jobs:
         with:
           go-version: '1.22'
           cache: true
+      - name: Determine version
+        id: ver
+        run: |
+          # On a tag push (refs/tags/v1.2.3) this yields "1.2.3"; on any other
+          # trigger (e.g. branch push) it falls back to "dev" so binaries
+          # built outside a release still self-report sanely.
+          ref="${GITHUB_REF_NAME}"
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "version=${ref#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=dev" >> "$GITHUB_OUTPUT"
+          fi
       - name: Build aisentinel
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
           mkdir -p dist
-          go build -trimpath -ldflags="-s -w" \
+          go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" \
             -o "dist/aisentinel-${GOOS}-${GOARCH}${{ matrix.ext }}" \
             ./cmd/aisentinel
       - name: Build aisentinel-sidecar
@@ -82,8 +95,9 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
-          go build -trimpath -ldflags="-s -w" \
+          go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" \
             -o "dist/aisentinel-sidecar-${GOOS}-${GOARCH}${{ matrix.ext }}" \
             ./cmd/aisentinel-sidecar
       - name: Checksums (linux/amd64)

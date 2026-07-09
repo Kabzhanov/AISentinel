@@ -24,11 +24,19 @@ import (
 	"github.com/Kabzhanov/AISentinel/internal/server"
 )
 
-const (
-	version   = "1.0.6"
-	policyDir = "policies"
-	banner    = "AISentinel v" + version + " — by Kabzhanov / BizDNAi / AI Trust Index"
-)
+// version is overridden at build time via:
+//
+//	go build -ldflags "-X main.version=1.2.3"
+//
+// CI's release job sets it from the git tag (see .github/workflows/ci.yml).
+// Local/`go install` builds without that flag report "dev".
+var version = "dev"
+
+const policyDir = "policies"
+
+func banner() string {
+	return "AISentinel v" + version + " — by Kabzhanov / BizDNAi / AI Trust Index"
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -49,7 +57,7 @@ func main() {
 	case "validate-policy":
 		err = runValidatePolicy(args)
 	case "version":
-		fmt.Println(banner)
+		fmt.Println(banner())
 		err = nil
 	case "policies":
 		err = runListPolicies()
@@ -89,7 +97,7 @@ Environment:
   AISENTINEL_DRY_RUN    If "1", never block — only log decisions
 
 Docs: https://github.com/Kabzhanov/AISentinel
-`, banner)
+`, banner())
 }
 
 func runServe(args []string) error {
@@ -110,7 +118,7 @@ func runServe(args []string) error {
 	}
 
 	srv := server.New(eng, filepath.Join(logDir, "events-"+today()+".jsonl"))
-	fmt.Fprintf(os.Stderr, "%s\n  policy: %s\n  log:    %s\n", banner, policyPath, logDir)
+	fmt.Fprintf(os.Stderr, "%s\n  policy: %s\n  log:    %s\n", banner(), policyPath, logDir)
 
 	return srv.ServeStdio(os.Stdin, os.Stdout)
 }

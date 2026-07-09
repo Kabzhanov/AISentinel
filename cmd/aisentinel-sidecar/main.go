@@ -31,7 +31,13 @@ import (
 	"github.com/Kabzhanov/AISentinel/internal/policy"
 )
 
-const version = "1.0.6"
+// version is overridden at build time via:
+//
+//	go build -ldflags "-X main.version=1.2.3"
+//
+// CI's release job sets it from the git tag (see .github/workflows/ci.yml).
+// Local/`go install` builds without that flag report "dev".
+var version = "dev"
 
 func main() {
 	policyPath := flag.String("policy", "", "policy YAML file (default: $AISENTINEL_POLICY, then ./policies/default.yaml, then built-in default)")
