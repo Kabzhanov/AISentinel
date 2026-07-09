@@ -6,6 +6,8 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"github.com/Kabzhanov/AISentinel/internal/secrets"
 )
 
 // Logger appends events as JSON lines.
@@ -41,8 +43,12 @@ func Open(path string) (*Logger, error) {
 	return &Logger{file: f}, nil
 }
 
-// Write appends one event as a single JSON line.
+// Write appends one event as a single JSON line. Before writing, it redacts
+// known secret-value shapes (AWS keys, OpenAI/GitHub/Slack tokens, URL
+// credentials, PEM private keys, ...) from ToolArgs, ToolResult, and
+// Metadata so raw secrets never land on disk in the audit trail.
 func (l *Logger) Write(ev Event) error {
+	Redact(&ev)
 	if ev.Timestamp == "" {
 		ev.Timestamp = time.Now().UTC().Format(time.RFC3339)
 	}
@@ -59,6 +65,55 @@ func (l *Logger) Write(ev Event) error {
 		return err
 	}
 	return nil
+}
+
+// Redact walks ev.ToolArgs, ev.ToolResult, and ev.Metadata (including
+// nested maps/slices/strings — arbitrary JSON-ish `any` values) and
+// replaces any string value that matches a known secret pattern with
+// secrets.Redacted. It mutates ev in place.
+//
+// This is the single point where audit-log redaction happens; both the
+// `aisentinel serve` MCP server (internal/server) and the sidecar
+// (cmd/aisentinel-sidecar) write events through Logger.Write, which calls
+// Redact automatically — callers don't need to redact manually.
+func Redact(ev *Event) {
+	if ev == nil {
+		return
+	}
+	ev.Prompt = secrets.RedactString(ev.Prompt)
+	ev.ToolArgs = redactMap(ev.ToolArgs)
+	ev.ToolResult = redactMap(ev.ToolResult)
+	ev.Metadata = redactMap(ev.Metadata)
+}
+
+// redactMap returns a copy of m with all string values (recursively, through
+// nested maps and slices) passed through secrets.RedactString.
+func redactMap(m map[string]any) map[string]any {
+	if m == nil {
+		return nil
+	}
+	out := make(map[string]any, len(m))
+	for k, v := range m {
+		out[k] = redactValue(v)
+	}
+	return out
+}
+
+func redactValue(v any) any {
+	switch t := v.(type) {
+	case string:
+		return secrets.RedactString(t)
+	case map[string]any:
+		return redactMap(t)
+	case []any:
+		out := make([]any, len(t))
+		for i, e := range t {
+			out[i] = redactValue(e)
+		}
+		return out
+	default:
+		return v
+	}
 }
 
 // Close flushes and closes the file.
