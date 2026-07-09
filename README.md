@@ -46,15 +46,23 @@ See [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) for the full threat model.
 ```bash
 go install github.com/Kabzhanov/AISentinel/cmd/aisentinel@latest
 aisentinel --help
-aisentinel serve --policy policies/default.yaml
+aisentinel serve
 ```
+
+`go install` gives you a standalone binary — you do **not** need to clone
+this repo or pass `--policy` to get started. `aisentinel serve` with no
+flags loads a built-in default policy (embedded in the binary at build
+time), balanced for general use: blocks obvious secrets-in-args and
+destructive commands, requires approval for network calls and bulk reads.
+To use your own policy instead, pass `--policy /path/to/your.yaml` or set
+`$AISENTINEL_POLICY` (see [Policy resolution](#policy-resolution) below).
 
 ### Option B: install the sidecar (drop-in policy proxy for any MCP server)
 
 ```bash
 go install github.com/Kabzhanov/AISentinel/cmd/aisentinel-sidecar@latest
 
-# Wrap any stdio MCP server with one command:
+# Wrap any stdio MCP server with one command — no --policy required:
 aisentinel-sidecar ./your-mcp-server [args...]
 ```
 
@@ -67,6 +75,9 @@ go build -o bin/aisentinel ./cmd/aisentinel
 go build -o bin/aisentinel-sidecar ./cmd/aisentinel-sidecar
 ./bin/aisentinel serve --policy policies/default.yaml
 ```
+
+(`--policy policies/default.yaml` here is explicit and optional — omitting
+it works too, and falls back to the same built-in default described above.)
 
 ### Option D: pre-built binaries from GitHub Releases
 
@@ -81,7 +92,7 @@ Available for `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64`,
   "mcpServers": {
     "aisentinel": {
       "command": "aisentinel",
-      "args": ["serve", "--policy", "/absolute/path/to/policies/default.yaml"]
+      "args": ["serve"]
     },
     "aisentinel-sidecar": {
       "command": "aisentinel-sidecar",
@@ -94,6 +105,22 @@ Available for `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64`,
 Then restart your MCP client and ask your agent to call any tool —
 AISentinel will gate every call and write a JSONL audit trail to
 `~/.aisentinel/events-YYYY-MM-DD.jsonl`.
+
+### Policy resolution
+
+Both `aisentinel serve` and `aisentinel-sidecar` resolve which policy to
+load in this order, stopping at the first one that applies:
+
+1. `--policy /path/to/file.yaml` — if given, it must load; a missing or
+   invalid file is a hard error.
+2. `$AISENTINEL_POLICY` — same contract as `--policy` if set.
+3. `./policies/default.yaml` relative to the current directory, if that
+   file exists (this is what you get inside a clone of this repo).
+4. The **built-in default policy**, embedded in the binary at compile time.
+   This is what makes `go install ... && aisentinel serve` work from any
+   directory, with no repo checkout and no flags. When this path is used,
+   the binary prints `using built-in default policy` to stderr so it's
+   never a silent surprise.
 
 ---
 
@@ -187,7 +214,11 @@ Verify:
 
 ```bash
 aisentinel version
-# AISentinel v1.0.0 — by Kabzhanov / BizDNAi / AI Trust Index
+# AISentinel v1.0.6 — by Kabzhanov / BizDNAi / AI Trust Index
+#
+# `go install ...@latest` builds from a tagged release and embeds that
+# tag's version via -ldflags. A plain local `go build` (no -ldflags) prints
+# "vdev" instead — that's expected, not a bug.
 ```
 
 ---
@@ -197,7 +228,11 @@ aisentinel version
 ### Run the MCP server
 
 ```bash
-aisentinel serve --policy policies/default.yaml
+# Uses the built-in default policy — no --policy needed:
+aisentinel serve
+
+# Or point at your own policy:
+aisentinel serve --policy policies/strict.yaml
 ```
 
 ### Validate a custom policy
