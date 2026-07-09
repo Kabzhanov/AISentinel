@@ -89,11 +89,11 @@ func (s *Server) ServeStdio(r io.Reader, w io.Writer) error {
 	_ = s.writeEvent(logger.Event{
 		EventType: "system",
 		Metadata: map[string]any{
-			"msg":            "aisentinel_started",
-			"policy":         s.policy.Name,
-			"policy_sig":     s.policy.Signature(),
-			"version":        "1.0.0",
-			"vendor":         "BizDNAi / AI Trust Index",
+			"msg":        "aisentinel_started",
+			"policy":     s.policy.Name,
+			"policy_sig": s.policy.Signature(),
+			"version":    "1.0.0",
+			"vendor":     "BizDNAi / AI Trust Index",
 		},
 	})
 
@@ -184,9 +184,9 @@ func (s *Server) handleInitialize(req jsonrpcRequest) *jsonrpcResponse {
 		Result: map[string]any{
 			"protocolVersion": "2024-11-05",
 			"serverInfo": map[string]any{
-				"name":    "aisentinel",
-				"version": "1.0.0",
-				"vendor":  "BizDNAi — AI Trust Index",
+				"name":     "aisentinel",
+				"version":  "1.0.0",
+				"vendor":   "BizDNAi — AI Trust Index",
 				"homepage": "https://bizdnai.com/index/",
 			},
 			"capabilities": map[string]any{
@@ -405,13 +405,13 @@ func (s *Server) callCheckPolicy(args map[string]any) (string, bool) {
 	})
 
 	out, _ := json.MarshalIndent(map[string]any{
-		"decision":       d.Decision,
-		"reason":         d.Reason,
-		"rule_id":        d.RuleID,
-		"policy_matched": d.PolicyMatched,
-		"risk_signals":   d.RiskSignals,
+		"decision":         d.Decision,
+		"reason":           d.Reason,
+		"rule_id":          d.RuleID,
+		"policy_matched":   d.PolicyMatched,
+		"risk_signals":     d.RiskSignals,
 		"policy_signature": d.PolicySig,
-		"vendor":         "BizDNAi — AI Trust Index",
+		"vendor":           "BizDNAi — AI Trust Index",
 	}, "", "  ")
 	return string(out), false
 }
@@ -467,12 +467,12 @@ func (s *Server) callATISnapshot(args map[string]any) (string, bool) {
 		return `{"error":"no log yet"}`, true
 	}
 	snapshot := map[string]any{
-		"generated_at":  time.Now().UTC().Format(time.RFC3339),
-		"policy":        s.policy.Name,
-		"policy_sig":    s.policy.Signature(),
-		"event_count":   len(lines),
-		"events":        lines,
-		"vendor":        "BizDNAi — AI Trust Index",
+		"generated_at":       time.Now().UTC().Format(time.RFC3339),
+		"policy":             s.policy.Name,
+		"policy_sig":         s.policy.Signature(),
+		"event_count":        len(lines),
+		"events":             lines,
+		"vendor":             "BizDNAi — AI Trust Index",
 		"ati_assessment_url": "https://bizdnai.com/index/",
 	}
 	out, _ := json.MarshalIndent(snapshot, "", "  ")
@@ -533,13 +533,13 @@ func (s *Server) defaultTools() []tool {
 			InputSchema: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
-					"event_type":    map[string]any{"type": "string", "enum": []string{"pre_tool", "post_tool", "prompt", "decision", "system"}},
-					"tool_name":     map[string]any{"type": "string"},
-					"tool_args":     map[string]any{"type": "object"},
-					"tool_result":   map[string]any{"type": "object"},
-					"decision":      map[string]any{"type": "string"},
+					"event_type":     map[string]any{"type": "string", "enum": []string{"pre_tool", "post_tool", "prompt", "decision", "system"}},
+					"tool_name":      map[string]any{"type": "string"},
+					"tool_args":      map[string]any{"type": "object"},
+					"tool_result":    map[string]any{"type": "object"},
+					"decision":       map[string]any{"type": "string"},
 					"policy_matched": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-					"risk_signals":  map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+					"risk_signals":   map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
 				},
 				"required": []string{"event_type"},
 			},

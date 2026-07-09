@@ -74,10 +74,10 @@ func TestCheckFirstMatchWins(t *testing.T) {
 	eng, _ := Load([]byte(samplePolicy))
 
 	tests := []struct {
-		name    string
-		call    ToolCall
-		want    string
-		ruleID  string
+		name   string
+		call   ToolCall
+		want   string
+		ruleID string
 	}{
 		{
 			name: "secret blocked",

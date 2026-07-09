@@ -16,10 +16,10 @@ import (
 
 // Engine is the loaded policy.
 type Engine struct {
-	Version int    `yaml:"version"`
-	Name    string `yaml:"name"`
+	Version     int    `yaml:"version"`
+	Name        string `yaml:"name"`
 	Description string `yaml:"description,omitempty"`
-	Rules   []Rule `yaml:"rules"`
+	Rules       []Rule `yaml:"rules"`
 }
 
 // Rule matches a tool call and decides what to do.
@@ -31,15 +31,15 @@ type Rule struct {
 	Metadata map[string]any `yaml:"metadata,omitempty"`
 
 	// compiled cache (not serialized)
-	toolNameRe  *regexp.Regexp
-	argsRe      *regexp.Regexp
+	toolNameRe *regexp.Regexp
+	argsRe     *regexp.Regexp
 }
 
 // Match is the rule matcher.
 type Match struct {
-	ToolName        string `yaml:"tool_name,omitempty"`
-	ToolNameRegex   string `yaml:"tool_name_regex,omitempty"`
-	ToolArgsRegex   string `yaml:"tool_args_regex,omitempty"`
+	ToolName         string `yaml:"tool_name,omitempty"`
+	ToolNameRegex    string `yaml:"tool_name_regex,omitempty"`
+	ToolArgsRegex    string `yaml:"tool_args_regex,omitempty"`
 	ToolArgsContains string `yaml:"tool_args_contains,omitempty"`
 }
 
@@ -176,10 +176,10 @@ type Decision struct {
 
 // ToolCall describes the call being checked.
 type ToolCall struct {
-	ToolName string         `json:"tool_name"`
-	ToolArgs map[string]any `json:"tool_args"`
-	AgentID  string         `json:"agent_id,omitempty"`
-	SessionID string        `json:"session_id,omitempty"`
+	ToolName  string         `json:"tool_name"`
+	ToolArgs  map[string]any `json:"tool_args"`
+	AgentID   string         `json:"agent_id,omitempty"`
+	SessionID string         `json:"session_id,omitempty"`
 }
 
 // argsAsString flattens args to a string for regex matching.

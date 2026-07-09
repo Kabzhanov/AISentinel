@@ -212,9 +212,9 @@ func intercept(src io.Reader, dst io.Writer, stdout *iox.LockedLineWriter, eng *
 
 		// Evaluate policy
 		call := policy.ToolCall{
-			ToolName: toolName,
-			ToolArgs: toolArgs,
-			AgentID:  agentID,
+			ToolName:  toolName,
+			ToolArgs:  toolArgs,
+			AgentID:   agentID,
 			SessionID: os.Getenv("AISENTINEL_SESSION_ID"),
 		}
 		dec := eng.Check(call)

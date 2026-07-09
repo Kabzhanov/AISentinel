@@ -9,8 +9,8 @@ import (
 
 func TestRedactString(t *testing.T) {
 	tests := []struct {
-		name  string
-		in    string
+		name         string
+		in           string
 		wantRedacted bool
 	}{
 		{"aws access key", "AKIAIOSFODNN7EXAMPLE", true},
